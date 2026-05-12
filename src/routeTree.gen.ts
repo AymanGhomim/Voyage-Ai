@@ -17,51 +17,40 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
-export interface FileRoutesByPath {
-  '/': {
-    id: '/'
-    path: '/'
-    fullPath: '/'
-    preLoaderRoute: typeof IndexRouteImport
-    parentRoute: typeof rootRouteImport
-  }
-  '/app': {
-    id: '/app'
-    path: '/app'
-    fullPath: '/app'
-    preLoaderRoute: typeof AppRouteImport
-    parentRoute: typeof rootRouteImport
-  }
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/app': typeof AppRoute
 }
-
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/app': typeof AppRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/app': typeof AppRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/app'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/app'
+  id: '__root__' | '/' | '/app'
+  fileRoutesById: FileRoutesById
+}
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AppRoute: AppRoute,
-}
-
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addRouteTypes()
-
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -69,5 +58,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AppRoute: AppRoute,
+}
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
