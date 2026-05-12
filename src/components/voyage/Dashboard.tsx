@@ -499,7 +499,7 @@ function AIAssistantModal({ trip, onClose, onSaveDays }: {
   const [errorMsg, setErrorMsg] = useState("");
   const [thinkingStep, setThinkingStep] = useState(0);
 
-  const hasKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY;
+  const hasKey = !!import.meta.env.VITE_GEMINI_API_KEY;
   const numDays = trip._startDate && trip._endDate
     ? Math.max(1, Math.round((new Date(trip._endDate).getTime() - new Date(trip._startDate).getTime()) / 86_400_000) + 1)
     : 5;
@@ -512,7 +512,7 @@ function AIAssistantModal({ trip, onClose, onSaveDays }: {
   ];
 
   const generate = async () => {
-    if (!hasKey) { setErrorMsg("No Anthropic API key found. Add VITE_ANTHROPIC_API_KEY to your .env file."); setStage("error"); return; }
+    if (!hasKey) { setErrorMsg("No Gemini API key found. Add VITE_GEMINI_API_KEY to your .env file."); setStage("error"); return; }
     setStage("thinking");
     setThinkingStep(0);
 
@@ -568,7 +568,7 @@ function AIAssistantModal({ trip, onClose, onSaveDays }: {
           {!hasKey && stage === "idle" && (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              No API key found — add <code className="rounded bg-white/10 px-1">VITE_ANTHROPIC_API_KEY</code> to your .env file.
+              No API key found — add <code className="rounded bg-white/10 px-1">VITE_GEMINI_API_KEY</code> to your .env file.
             </div>
           )}
 

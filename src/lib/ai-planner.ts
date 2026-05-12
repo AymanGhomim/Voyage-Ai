@@ -32,12 +32,15 @@ export function formatDateLabel(dateStr: string, dayIndex: number): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// ── System prompt ─────────────────────────────────────────────────────────────
-function buildSystemPrompt(): string {
-  return `You are a world-class travel planner AI. 
-When given a destination and number of days, respond ONLY with a valid JSON object — no markdown, no explanation, no backticks.
+// ── Prompt ────────────────────────────────────────────────────────────────────
+function buildPrompt(destination: string, numDays: number, startDate: string, userPrompt: string): string {
+  return `You are a world-class travel planner.
+Plan a ${numDays}-day trip to ${destination} starting ${startDate}.
+${userPrompt ? `Traveler preferences: ${userPrompt}` : ""}
 
-The JSON must follow this exact schema:
+Respond ONLY with a valid JSON object — no markdown, no backticks, no explanation.
+
+Schema:
 {
   "days": [
     {
@@ -45,11 +48,11 @@ The JSON must follow this exact schema:
       "title": "Short evocative day title",
       "places": [
         {
-          "name": "Exact place name",
-          "city": "City or area name",
-          "emoji": "Single relevant emoji",
+          "name": "Exact real place name",
+          "city": "City or district",
+          "emoji": "Single emoji",
           "tag": "One of: Landmark, Museum, Food, Dinner, Lunch, Breakfast, Market, Beach, Hike, Sunset, Nightlife, Shopping, Culture, Temple, Park, Viewpoint, Spa, Tour, Activity",
-          "time": "HH:MM (24h format)"
+          "time": "HH:MM"
         }
       ]
     }
@@ -57,61 +60,54 @@ The JSON must follow this exact schema:
 }
 
 Rules:
-- Include 2–4 places per day (morning, afternoon, evening)
-- Places must be REAL and specific to the destination city
-- Times must be logical (breakfast 08:00-09:00, lunch 12:30-13:30, dinner 19:30-21:00)
+- 2–4 places per day with logical times (breakfast ~08:00, lunch ~13:00, dinner ~20:00)
+- Places must be REAL and specific to ${destination}
 - Day titles must be poetic and descriptive
-- Return ONLY the JSON object, nothing else`;
+- Return ONLY the JSON object`;
 }
 
-// ── Main function ─────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export async function generateItinerary(
   destination: string,
   startDate: string,
   endDate: string,
-  userPrompt: string = "",
+  userPrompt = "",
 ): Promise<Day[]> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
   if (!apiKey) throw new Error("NO_API_KEY");
 
   const numDays = calcDays(startDate, endDate);
+  const prompt  = buildPrompt(destination, numDays, startDate, userPrompt);
 
-  const userMessage = `Plan a ${numDays}-day trip to ${destination}.
-${userPrompt ? `Traveler preferences: ${userPrompt}` : ""}
-Start date: ${startDate}
-End date: ${endDate}
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-Respond with ONLY the JSON object.`;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-opus-4-5",
-      max_tokens: 2048,
-      system: buildSystemPrompt(),
-      messages: [{ role: "user", content: userMessage }],
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",   // Gemini يرجع JSON مباشرة
+      },
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`API error ${res.status}: ${err}`);
+    throw new Error(`Gemini API error ${res.status}: ${err}`);
   }
 
-  const data = await res.json() as { content: { type: string; text: string }[] };
-  const raw = data.content.find((b) => b.type === "text")?.text ?? "";
+  const data = await res.json() as {
+    candidates: { content: { parts: { text: string }[] } }[];
+  };
 
-  // Strip any accidental markdown fences
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  // Strip accidental markdown fences just in case
   const cleaned = raw.replace(/```(?:json)?/g, "").trim();
   const parsed: AIResponse = JSON.parse(cleaned);
 
-  // Map to our Day type, injecting real images
   return parsed.days.map((d, i) => ({
     day: d.day,
     title: d.title,
