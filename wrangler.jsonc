@@ -1,0 +1,9 @@
+{
+  "name": "voyage-ai",
+  "compatibility_date": "2025-01-01",
+  "main": "./.output/server/index.mjs",
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS"
+  }
+}
