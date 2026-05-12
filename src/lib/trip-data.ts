@@ -2,7 +2,7 @@ import santorini from "@/assets/hero-santorini.jpg";
 import tokyo from "@/assets/place-tokyo.jpg";
 import bali from "@/assets/place-bali.jpg";
 import iceland from "@/assets/place-iceland.jpg";
-import marrakech from "@/assets/place-marrakech.jpg";
+import { getPlaceImage } from "@/lib/place-image";
 
 export type Place = {
   id: string;
@@ -42,7 +42,7 @@ export const trips: Trip[] = [
     budget: { spent: 1840, total: 3200 },
     members: [
       { name: "Maya", color: "from-fuchsia-400 to-violet-500" },
-      { name: "Leo", color: "from-amber-400 to-orange-500" },
+      { name: "Leo",  color: "from-amber-400 to-orange-500" },
       { name: "Sana", color: "from-sky-400 to-cyan-500" },
       { name: "Theo", color: "from-emerald-400 to-teal-500" },
     ],
@@ -52,8 +52,8 @@ export const trips: Trip[] = [
         title: "Arrival & Caldera Sunset",
         date: "Jun 12",
         places: [
-          { id: "p1", name: "Oia Village", city: "Santorini", emoji: "🌅", tag: "Sunset", time: "18:30", image: santorini },
-          { id: "p2", name: "Ammoudi Bay", city: "Santorini", emoji: "🍷", tag: "Dinner", time: "20:30", image: marrakech },
+          { id: "p1", name: "Oia Village",  city: "Santorini",   emoji: "🌅", tag: "Sunset", time: "18:30", image: getPlaceImage("Oia Village",  "Santorini",   "Sunset") },
+          { id: "p2", name: "Ammoudi Bay",  city: "Santorini",   emoji: "🍷", tag: "Dinner", time: "20:30", image: getPlaceImage("Ammoudi Bay",  "Santorini",   "Dinner") },
         ],
       },
       {
@@ -61,8 +61,8 @@ export const trips: Trip[] = [
         title: "Volcano & Hot Springs",
         date: "Jun 13",
         places: [
-          { id: "p3", name: "Nea Kameni", city: "Volcano", emoji: "🌋", tag: "Hike", time: "10:00", image: iceland },
-          { id: "p4", name: "Palea Kameni", city: "Hot Springs", emoji: "♨️", tag: "Swim", time: "13:00", image: bali },
+          { id: "p3", name: "Nea Kameni",   city: "Volcano",     emoji: "🌋", tag: "Hike",   time: "10:00", image: getPlaceImage("Nea Kameni",   "Volcano",     "Hike")   },
+          { id: "p4", name: "Palea Kameni", city: "Hot Springs", emoji: "♨️", tag: "Swim",   time: "13:00", image: getPlaceImage("Palea Kameni", "Hot Springs", "Swim")   },
         ],
       },
       {
@@ -70,7 +70,7 @@ export const trips: Trip[] = [
         title: "Wine & Cliffside Drift",
         date: "Jun 14",
         places: [
-          { id: "p5", name: "Santo Wines", city: "Pyrgos", emoji: "🍇", tag: "Tasting", time: "16:00", image: tokyo },
+          { id: "p5", name: "Santo Wines",  city: "Pyrgos",      emoji: "🍇", tag: "Tasting", time: "16:00", image: getPlaceImage("Santo Wines", "Pyrgos", "Tasting") },
         ],
       },
     ],

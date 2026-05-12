@@ -8,6 +8,7 @@ import {
   Menu, CheckCircle2, Layers, Satellite, LogOut, LogIn,
 } from "lucide-react";
 import { trips as initialTrips, type Trip, type Day } from "@/lib/trip-data";
+import { getPlaceImage } from "@/lib/place-image";
 import { useAuth, useAuthUser, type AuthUser } from "@/lib/auth";
 import { AuthModal } from "@/components/voyage/AuthModal";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -22,36 +23,36 @@ const AI_GENERATED_DAYS: Day[] = [
   {
     day: 1, title: "Caldera Arrival & Golden Hour", date: "Day 1",
     places: [
-      { id: "ai-p1", name: "Oia Village", city: "Santorini", emoji: "🌅", tag: "Sunset", time: "18:30", image: santorini },
-      { id: "ai-p2", name: "Ammoudi Bay", city: "Santorini", emoji: "🍷", tag: "Dinner", time: "20:30", image: bali },
+      { id: "ai-p1", name: "Oia Village",    city: "Santorini",      emoji: "🌅", tag: "Sunset",     time: "18:30", image: getPlaceImage("Oia Village",    "Santorini",      "Sunset")     },
+      { id: "ai-p2", name: "Ammoudi Bay",    city: "Santorini",      emoji: "🍷", tag: "Dinner",     time: "20:30", image: getPlaceImage("Ammoudi Bay",    "Santorini",      "Dinner")     },
     ],
   },
   {
     day: 2, title: "Volcano & Hot Springs", date: "Day 2",
     places: [
-      { id: "ai-p3", name: "Nea Kameni", city: "Volcanic Island", emoji: "🌋", tag: "Hike", time: "10:00", image: iceland },
-      { id: "ai-p4", name: "Palea Kameni", city: "Hot Springs", emoji: "♨️", tag: "Swim", time: "13:00", image: bali },
+      { id: "ai-p3", name: "Nea Kameni",     city: "Volcanic Island",emoji: "🌋", tag: "Hike",       time: "10:00", image: getPlaceImage("Nea Kameni",     "Volcano",        "Hike")       },
+      { id: "ai-p4", name: "Palea Kameni",   city: "Hot Springs",    emoji: "♨️", tag: "Swim",       time: "13:00", image: getPlaceImage("Palea Kameni",   "Hot Springs",    "Swim")       },
     ],
   },
   {
     day: 3, title: "Wine Country & Cliffside Drift", date: "Day 3",
     places: [
-      { id: "ai-p5", name: "Santo Wines", city: "Pyrgos", emoji: "🍇", tag: "Tasting", time: "16:00", image: tokyo },
-      { id: "ai-p6", name: "Pyrgos Rooftop", city: "Pyrgos", emoji: "🏛️", tag: "Stargazing", time: "21:00", image: santorini },
+      { id: "ai-p5", name: "Santo Wines",    city: "Pyrgos",         emoji: "🍇", tag: "Tasting",    time: "16:00", image: getPlaceImage("Santo Wines",    "Pyrgos",         "Tasting")    },
+      { id: "ai-p6", name: "Pyrgos Rooftop", city: "Pyrgos",         emoji: "🏛️", tag: "Stargazing", time: "21:00", image: getPlaceImage("Pyrgos Rooftop", "Santorini",      "Stargazing") },
     ],
   },
   {
     day: 4, title: "Beach Day & Sunset Sushi", date: "Day 4",
     places: [
-      { id: "ai-p7", name: "Perissa Beach", city: "Santorini", emoji: "🌊", tag: "Beach", time: "11:00", image: bali },
-      { id: "ai-p8", name: "Sunset Sushi Bar", city: "Fira", emoji: "🍣", tag: "Dinner", time: "19:30", image: tokyo },
+      { id: "ai-p7", name: "Perissa Beach",  city: "Santorini",      emoji: "🌊", tag: "Beach",      time: "11:00", image: getPlaceImage("Perissa Beach",  "Santorini",      "Beach")      },
+      { id: "ai-p8", name: "Sunset Sushi Bar",city: "Fira",          emoji: "🍣", tag: "Dinner",     time: "19:30", image: getPlaceImage("Sushi Bar",      "Japan",          "Sushi")      },
     ],
   },
   {
     day: 5, title: "Slow Morning & Farewell", date: "Day 5",
     places: [
-      { id: "ai-p9", name: "Akrotiri Ruins", city: "Santorini", emoji: "🏛️", tag: "Culture", time: "10:00", image: iceland },
-      { id: "ai-p10", name: "Rooftop Farewell", city: "Oia", emoji: "✨", tag: "Dinner", time: "20:00", image: santorini },
+      { id: "ai-p9", name: "Akrotiri Ruins", city: "Santorini",      emoji: "🏛️", tag: "Culture",    time: "10:00", image: getPlaceImage("Akrotiri Ruins", "Greece",         "Ruins")      },
+      { id: "ai-p10",name: "Rooftop Farewell",city: "Oia",           emoji: "✨", tag: "Dinner",     time: "20:00", image: getPlaceImage("Rooftop",        "Santorini",      "Rooftop")    },
     ],
   },
 ];
@@ -490,7 +491,22 @@ function PlaceCard({ place, index }: { place: { id: string; name: string; city: 
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.08 }}
       onClick={() => toast(`${place.emoji} ${place.name}`, { description: `${place.city} · ${place.tag} at ${place.time}` })}
       className="group lift relative h-56 overflow-hidden rounded-3xl border border-white/10 cursor-pointer">
-      <img src={place.image} alt={place.name} loading="lazy" width={1024} height={1024} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+      <img
+        src={place.image}
+        alt={place.name}
+        loading="lazy"
+        width={800}
+        height={600}
+        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+        onError={(e) => {
+          // Fallback to loremflickr if Unsplash fails
+          const t = e.currentTarget;
+          if (!t.dataset.fallback) {
+            t.dataset.fallback = "1";
+            t.src = `https://loremflickr.com/800/600/${encodeURIComponent(place.city + "," + place.tag)}/all`;
+          }
+        }}
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
       <div className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full glass-strong px-3 py-1 text-xs"><Clock className="h-3 w-3" /> {place.time}</div>
       <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full glass-strong px-3 py-1 text-xs">{place.tag}</div>
