@@ -13,7 +13,6 @@ import { AuthModal } from "@/components/voyage/AuthModal";
 import { ManualPlanModal } from "@/components/voyage/ManualPlanModal";
 import { PlaceImage } from "@/components/voyage/PlaceImage";
 import { generateItinerary } from "@/lib/ai-planner";
-import { getPlaceImage } from "@/lib/place-image";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import santorini from "@/assets/hero-santorini.jpg";
 import tokyo from "@/assets/place-tokyo.jpg";
