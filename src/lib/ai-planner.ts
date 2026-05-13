@@ -1,29 +1,12 @@
 import { getPlaceImage } from "@/lib/place-image";
 import type { Day } from "@/lib/trip-data";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface AIPlace {
-  name: string;
-  city: string;
-  emoji: string;
-  tag: string;
-  time: string;
-}
+interface AIPlace { name: string; city: string; emoji: string; tag: string; time: string; }
+interface AIDay   { day: number; title: string; places: AIPlace[]; }
+interface AIResp  { days: AIDay[]; }
 
-interface AIDay {
-  day: number;
-  title: string;
-  places: AIPlace[];
-}
-
-interface AIResponse {
-  days: AIDay[];
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 export function calcDays(start: string, end: string): number {
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  return Math.max(1, Math.round(ms / 86_400_000) + 1);
+  return Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000) + 1);
 }
 
 export function formatDateLabel(dateStr: string, dayIndex: number): string {
@@ -32,26 +15,24 @@ export function formatDateLabel(dateStr: string, dayIndex: number): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// ── Prompt ────────────────────────────────────────────────────────────────────
 function buildPrompt(destination: string, numDays: number, startDate: string, userPrompt: string): string {
   return `You are a world-class travel planner.
 Plan a ${numDays}-day trip to ${destination} starting ${startDate}.
 ${userPrompt ? `Traveler preferences: ${userPrompt}` : ""}
 
-Respond ONLY with a valid JSON object — no markdown, no backticks, no explanation.
+Return ONLY a JSON object, no markdown, no backticks.
 
-Schema:
 {
   "days": [
     {
       "day": 1,
-      "title": "Short evocative day title",
+      "title": "Evocative day title",
       "places": [
         {
-          "name": "Exact real place name",
-          "city": "City or district",
-          "emoji": "Single emoji",
-          "tag": "One of: Landmark, Museum, Food, Dinner, Lunch, Breakfast, Market, Beach, Hike, Sunset, Nightlife, Shopping, Culture, Temple, Park, Viewpoint, Spa, Tour, Activity",
+          "name": "Exact real place name in ${destination}",
+          "city": "District or city",
+          "emoji": "single emoji",
+          "tag": "Landmark|Museum|Food|Dinner|Lunch|Breakfast|Market|Beach|Hike|Sunset|Nightlife|Shopping|Culture|Temple|Park|Viewpoint|Spa|Tour|Activity",
           "time": "HH:MM"
         }
       ]
@@ -60,13 +41,18 @@ Schema:
 }
 
 Rules:
-- 2–4 places per day with logical times (breakfast ~08:00, lunch ~13:00, dinner ~20:00)
-- Places must be REAL and specific to ${destination}
-- Day titles must be poetic and descriptive
-- Return ONLY the JSON object`;
+- 2–4 real places per day with logical times
+- ALL places must be REAL and exist in ${destination}
+- Return ONLY the JSON`;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+async function callGemini(model: string, body: object, apiKey: string): Promise<Response> {
+  return fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+  );
+}
+
 export async function generateItinerary(
   destination: string,
   startDate: string,
@@ -78,48 +64,51 @@ export async function generateItinerary(
 
   const numDays = calcDays(startDate, endDate);
   const prompt  = buildPrompt(destination, numDays, startDate, userPrompt);
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-        responseMimeType: "application/json",   // Gemini يرجع JSON مباشرة
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json() as {
-    candidates: { content: { parts: { text: string }[] } }[];
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
   };
 
-  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  // Strip accidental markdown fences just in case
-  const cleaned = raw.replace(/```(?:json)?/g, "").trim();
-  const parsed: AIResponse = JSON.parse(cleaned);
+  // Try models in order — most capable first, fallback to lighter ones
+  const models = [
+    "gemini-1.5-flash-latest",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-8b-latest",
+  ];
 
-  return parsed.days.map((d, i) => ({
-    day: d.day,
-    title: d.title,
-    date: formatDateLabel(startDate, i),
-    places: d.places.map((p, pi) => ({
-      id: `ai-${d.day}-${pi}`,
-      name: p.name,
-      city: p.city,
-      emoji: p.emoji,
-      tag: p.tag,
-      time: p.time,
-      image: getPlaceImage(p.name, p.city, p.tag),
-    })),
-  }));
+  let lastError = "";
+  for (const model of models) {
+    try {
+      const res = await callGemini(model, body, apiKey);
+      if (!res.ok) {
+        const err = await res.text();
+        lastError = `${model}: ${res.status} ${err.slice(0, 200)}`;
+        continue; // try next model
+      }
+      const data = await res.json() as { candidates: { content: { parts: { text: string }[] } }[] };
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      // Strip accidental markdown fences
+      const cleaned = raw.replace(/```(?:json)?/g, "").trim();
+      const parsed: AIResp = JSON.parse(cleaned);
+
+      return parsed.days.map((d, i) => ({
+        day: d.day,
+        title: d.title,
+        date: formatDateLabel(startDate, i),
+        places: d.places.map((p, pi) => ({
+          id: `ai-${d.day}-${pi}`,
+          name: p.name,
+          city: p.city,
+          emoji: p.emoji,
+          tag: p.tag,
+          time: p.time,
+          image: getPlaceImage(p.name, p.city, p.tag),
+        })),
+      }));
+    } catch (e) {
+      lastError = String(e);
+    }
+  }
+
+  throw new Error(`All Gemini models failed. Last error: ${lastError}`);
 }
