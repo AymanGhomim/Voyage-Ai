@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, MapPin, Clock, Tag, Sparkles, Trash2, GripVertical } from "lucide-react";
 import { getPlaceImage } from "@/lib/place-image";
+import { PlaceImage } from "@/components/voyage/PlaceImage";
 import type { Day, Place } from "@/lib/trip-data";
 import { toast } from "sonner";
 
@@ -201,17 +202,13 @@ export function ManualPlanModal({ onClose, onSave, existingDays, destination, st
                       >
                         {/* Thumbnail */}
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-                          <img
-                            src={place.image}
+                          <PlaceImage
+                            name={place.name}
+                            city={place.city}
+                            tag={place.tag}
                             alt={place.name}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              const t = e.currentTarget;
-                              if (!t.dataset.fb) {
-                                t.dataset.fb = "1";
-                                t.src = `https://loremflickr.com/200/200/${encodeURIComponent(place.city)}/all`;
-                              }
-                            }}
+                            width={200}
+                            height={200}
                           />
                         </div>
                         <div className="flex-1 min-w-0">

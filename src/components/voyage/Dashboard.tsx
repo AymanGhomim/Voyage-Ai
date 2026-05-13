@@ -11,6 +11,7 @@ import { trips as initialTrips, type Trip, type Day } from "@/lib/trip-data";
 import { useAuth, useAuthUser, type AuthUser } from "@/lib/auth";
 import { AuthModal } from "@/components/voyage/AuthModal";
 import { ManualPlanModal } from "@/components/voyage/ManualPlanModal";
+import { PlaceImage } from "@/components/voyage/PlaceImage";
 import { generateItinerary } from "@/lib/ai-planner";
 import { getPlaceImage } from "@/lib/place-image";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -437,12 +438,15 @@ function PlaceCard({ place, index, onRemove }: {
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.08 }}
       className="group lift relative h-56 overflow-hidden rounded-3xl border border-white/10 cursor-pointer"
       onClick={() => toast(`${place.emoji} ${place.name}`, { description: `${place.city} · ${place.tag} at ${place.time}` })}>
-      <img src={place.image} alt={place.name} loading="lazy" width={800} height={600}
-        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-        onError={(e) => {
-          const t = e.currentTarget;
-          if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = `https://loremflickr.com/800/600/${encodeURIComponent(place.city + "," + place.tag)}/all`; }
-        }} />
+      <PlaceImage
+        name={place.name}
+        city={place.city}
+        tag={place.tag}
+        alt={place.name}
+        className="transition duration-700 group-hover:scale-105"
+        width={800}
+        height={600}
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
       {/* Remove button */}
       <button
